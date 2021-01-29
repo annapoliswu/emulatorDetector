@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -19,7 +20,9 @@ import java.util.function.Function;
 
 public class MainActivity extends AppCompatActivity {
 
+
     TextView txtMain;
+    private static final int REQUEST_PHONE_STATE = 1;
 
     private String[] buildModels= {
             "android sdk built for x86",
@@ -66,13 +69,20 @@ public class MainActivity extends AppCompatActivity {
         txtMain = findViewById(R.id.txtMain);
         txtMain.setMovementMethod(new ScrollingMovementMethod());
 
+        //request phone permissions if not given
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            appendNewLine("Please grant phone permissions to enable full checks.");
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.READ_PHONE_STATE},
+                    REQUEST_PHONE_STATE);
+        }
+
         Button btnMain = findViewById(R.id.button);
         btnMain.setOnClickListener(view -> {
-            //txtMain.append("\nYour number: " + (int)(Math.random()*10));
-
-            if (checkBuild()){
+            appendNewLine();
+            if (checkBuild() | checkTelephony()) {
                 appendNewLine("Emulator detected");
-            }else{
+            } else {
                 appendNewLine("Emulator not detected");
             }
         });
@@ -82,6 +92,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void appendNewLine(String txt){
         txtMain.append("\n"+txt);
+    }
+    public void appendNewLine(){
+        txtMain.append("\n");
+    }
+    public void clearText(){
+        txtMain.setText("");
     }
 
     interface Predicate {
@@ -142,20 +158,24 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Checks IMEI numbers and device IDs using the telephony manager
-     * currently crashing, working on this
+     * Tells you if permissions not granted for telephony checks
      */
-    public boolean checkTelephone() {
+    public boolean checkTelephony() {
         boolean ret = false;
         TelephonyManager tm = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        appendNewLine("Device id: " + tm.getDeviceId());
-
-        /*ret = checkArray(deviceIDs, (String txt)->{return tm.getDeviceId().equalsIgnoreCase(txt); }, "Device ID equals");
-
-        if(tm.getSubscriberId().equals("310260000000000")){
-            appendNewLine("Device IMSI ID equals '310260000000000'");
-            ret = true;
+        try {
+            ret = checkArray(deviceIDs, (String txt)-> tm.getDeviceId().equalsIgnoreCase(txt), "Device ID equals");
+            if(tm.getSubscriberId().equals("310260000000000")){
+                appendNewLine("Subscriber ID equals '310260000000000'");
+                ret = true;
+            }
+        }catch(Exception e){
+            appendNewLine("Permissions not granted to access telephony IDs.");
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+                appendNewLine("SDK 29+ Cannot grant read privileged phone state permission to access non-resettable ids.");
+            }
         }
-         */
+
         return ret;
     }
 
