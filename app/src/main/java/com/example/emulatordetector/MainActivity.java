@@ -21,10 +21,10 @@ import java.util.function.Function;
 public class MainActivity extends AppCompatActivity {
 
 
-    TextView txtMain;
+    private TextView txtMain;
     private static final int REQUEST_PHONE_STATE = 1;
 
-    private String[] buildModels = {
+    private static final String[] BUILD_MODELS = {
             "android sdk built for x86",
             "android sdk built for x86_64",
             "emulator",
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
             "tiantianvm",
     };
 
-    private String[] buildProducts = {
+    private static final String[] BUILD_PRODUCTS = {
             "emulator",
             "simulator",
             "sdk_google",
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
             "nox"
     };
 
-    private String[] buildFingerprints = {
+    private static final String[] BUILD_FINGERPRINTS = {
             "vsemu",
             "generic/sdk/generic",
             "generic_x86/sdk_x86/generic_x86",
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
             "vbox86p"
     };
 
-    private String[] buildHardware = {
+    private static final String[] BUILD_HARDWARE = {
             "goldfish",
             "ranchu",
             "vbox86",
@@ -64,14 +64,14 @@ public class MainActivity extends AppCompatActivity {
             "ttvm_x86"
     };
 
-    private String[] buildManufacturers = {
+    private static final String[] BUILD_MANUFACTURERS = {
             "Genymotion",
             "MIT",
             "nox",
             "TiantianVM"
     };
 
-    private String[] buildHosts = {
+    private static final String[] BUILD_HOSTS = {
             "apa27.mtv.corp.google.com",
             "android-test-15.mtv.corp.google.com",
             "android-test-13.mtv.corp.google.com",
@@ -81,13 +81,13 @@ public class MainActivity extends AppCompatActivity {
             "vpak21.mtv.corp.google.com"
     };
 
-    private String[] deviceIDs = {
+    private static final String[] DEVICE_IDS = {
             "000000000000000",
             "e21833235b6eef10",
             "012345678912345"
     };
 
-    private String[] lineNumbers = { //numbers starting with 155552155 and ending with any even number from 54-84 are emulators
+    private static final String[] LINE_NUMBERS = { //numbers starting with 155552155 and ending with any even number from 54-84 are emulators
             "15555215554", "15555215556", "15555215558", "15555215560", "15555215562", "15555215564",
             "15555215566", "15555215568", "15555215570", "15555215572", "15555215574", "15555215576",
             "15555215578", "15555215580", "15555215582", "15555215584"
@@ -156,27 +156,27 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean checkBuildModel() {
-        return checkArray(buildModels, (String txt) -> Build.MODEL.toLowerCase().contains(txt), "Build model contains");
+        return checkArray(BUILD_MODELS, (String txt) -> Build.MODEL.toLowerCase().contains(txt), "Build model contains");
     }
 
     private boolean checkBuildProduct() {
-        return checkArray(buildProducts, (String txt) -> Build.PRODUCT.toLowerCase().contains(txt), "Build product contains");
+        return checkArray(BUILD_PRODUCTS, (String txt) -> Build.PRODUCT.toLowerCase().contains(txt), "Build product contains");
     }
 
     private boolean checkBuildFingerprint() {
-        return checkArray(buildFingerprints, (String txt) -> Build.FINGERPRINT.toLowerCase().contains(txt), "Build fingerprint starts with");
+        return checkArray(BUILD_FINGERPRINTS, (String txt) -> Build.FINGERPRINT.toLowerCase().contains(txt), "Build fingerprint starts with");
     }
 
     private boolean checkBuildHardware() {
-        return checkArray(buildHardware, (String txt) -> Build.HARDWARE.toLowerCase().contains(txt), "Build hardware contains");
+        return checkArray(BUILD_HARDWARE, (String txt) -> Build.HARDWARE.toLowerCase().contains(txt), "Build hardware contains");
     }
 
     private boolean checkBuildHosts() {
-        return checkArray(buildHosts, Build.HOST::equals, "Build host equals");
+        return checkArray(BUILD_HOSTS, Build.HOST::equals, "Build host equals");
     }
 
     private boolean checkBuildManufacturer() {
-        boolean ret = checkArray(buildManufacturers, Build.MANUFACTURER::contains, "Build manufacturer equals");
+        boolean ret = checkArray(BUILD_MANUFACTURERS, Build.MANUFACTURER::contains, "Build manufacturer equals");
         if (Build.MANUFACTURER.contains("unknown")) {
             appendNewLine("Build manufacturer equals 'unknown'");
             ret = true;
@@ -214,8 +214,8 @@ public class MainActivity extends AppCompatActivity {
             appendNewLine("Permissions not granted to access telephony IDs.");
         }else{
             try {
-                ret = checkArray(deviceIDs, (String txt) -> tm.getDeviceId().equalsIgnoreCase(txt), "Device ID equals") |
-                        checkArray(lineNumbers, (String txt) -> tm.getLine1Number().equals(txt), "Line1 number equals");
+                ret = checkArray(DEVICE_IDS, (String txt) -> tm.getDeviceId().equalsIgnoreCase(txt), "Device ID equals") |
+                        checkArray(LINE_NUMBERS, (String txt) -> tm.getLine1Number().equals(txt), "Line1 number equals");
                 if (tm.getSubscriberId().equals("310260000000000")) {
                     appendNewLine("Subscriber ID equals '310260000000000'");
                     ret = true;
