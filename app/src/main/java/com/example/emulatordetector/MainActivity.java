@@ -24,12 +24,14 @@ public class MainActivity extends AppCompatActivity {
     TextView txtMain;
     private static final int REQUEST_PHONE_STATE = 1;
 
-    private String[] buildModels= {
+    private String[] buildModels = {
             "android sdk built for x86",
+            "android sdk built for x86_64",
             "emulator",
             "google_sdk",
             "droid4x",
-            "sdk"
+            "sdk",
+            "tiantianvm",
     };
 
     private String[] buildProducts = {
@@ -44,15 +46,39 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private String[] buildFingerprints = {
-            "generic",
-            "unknown"
+            "vsemu",
+            "generic/sdk/generic",
+            "generic_x86/sdk_x86/generic_x86",
+            "generic/google_sdk/generic",
+            "generic/vbox86p/vbox86p",
+            "generic_x86_64",
+            "ttvm_hdragon",
+            "vbox86p"
     };
 
     private String[] buildHardware = {
             "goldfish",
             "ranchu",
             "vbox86",
-            "nox"
+            "nox",
+            "ttvm_x86"
+    };
+
+    private String[] buildManufacturers = {
+            "Genymotion",
+            "MIT",
+            "nox",
+            "TiantianVM"
+    };
+
+    private String[] buildHosts = {
+            "apa27.mtv.corp.google.com",
+            "android-test-15.mtv.corp.google.com",
+            "android-test-13.mtv.corp.google.com",
+            "android-test-25.mtv.corp.google.com",
+            "android-test-26.mtv.corp.google.com",
+            "vpbs30.mtv.corp.google.com",
+            "vpak21.mtv.corp.google.com"
     };
 
     private String[] deviceIDs = {
@@ -60,6 +86,13 @@ public class MainActivity extends AppCompatActivity {
             "e21833235b6eef10",
             "012345678912345"
     };
+
+    private String[] lineNumbers = { //numbers starting with 155552155 and ending with any even number from 54-84 are emulators
+            "15555215554", "15555215556", "15555215558", "15555215560", "15555215562", "15555215564",
+            "15555215566", "15555215568", "15555215570", "15555215572", "15555215574", "15555215576",
+            "15555215578", "15555215580", "15555215582", "15555215584"
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,13 +123,15 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void appendNewLine(String txt){
-        txtMain.append("\n"+txt);
+    public void appendNewLine(String txt) {
+        txtMain.append("\n" + txt);
     }
-    public void appendNewLine(){
+
+    public void appendNewLine() {
         txtMain.append("\n");
     }
-    public void clearText(){
+
+    public void clearText() {
         txtMain.setText("");
     }
 
@@ -108,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
      * Generic function that checks an array of strings using the predicate function and outputs message to the main view upon check.
      * @return True if predicate was found true at least once, else returns false.
      */
-    public boolean checkArray(String[] array, Predicate checkFunction, String message){
+    public boolean checkArray(String[] array, Predicate checkFunction, String message) {
         boolean ret = false;
         for (String s : array) {
             if (checkFunction.call(s)) {
@@ -120,20 +155,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private boolean checkBuildModel(){
-        return checkArray(buildModels, (String txt)-> Build.MODEL.toLowerCase().contains(txt), "Build model contains");
+    private boolean checkBuildModel() {
+        return checkArray(buildModels, (String txt) -> Build.MODEL.toLowerCase().contains(txt), "Build model contains");
     }
 
-    private boolean checkBuildProduct(){
-        return checkArray(buildProducts, (String txt)-> Build.PRODUCT.toLowerCase().contains(txt), "Build product contains");
+    private boolean checkBuildProduct() {
+        return checkArray(buildProducts, (String txt) -> Build.PRODUCT.toLowerCase().contains(txt), "Build product contains");
     }
 
-    private boolean checkBuildFingerprint(){
-        return checkArray(buildFingerprints, (String txt)-> Build.FINGERPRINT.toLowerCase().startsWith(txt), "Build fingerprint starts with");
+    private boolean checkBuildFingerprint() {
+        return checkArray(buildFingerprints, (String txt) -> Build.FINGERPRINT.toLowerCase().contains(txt), "Build fingerprint starts with");
     }
 
-    private boolean checkBuildHardware(){
-        return checkArray(buildHardware, (String txt)-> Build.HARDWARE.toLowerCase().contains(txt), "Build hardware contains");
+    private boolean checkBuildHardware() {
+        return checkArray(buildHardware, (String txt) -> Build.HARDWARE.toLowerCase().contains(txt), "Build hardware contains");
+    }
+
+    private boolean checkBuildHosts() {
+        return checkArray(buildHosts, Build.HOST::equals, "Build host equals");
+    }
+
+    private boolean checkBuildManufacturer() {
+        boolean ret = checkArray(buildManufacturers, Build.MANUFACTURER::contains, "Build manufacturer equals");
+        if (Build.MANUFACTURER.contains("unknown")) {
+            appendNewLine("Build manufacturer equals 'unknown'");
+            ret = true;
+        }
+        return ret;
     }
 
     /**
@@ -142,19 +190,17 @@ public class MainActivity extends AppCompatActivity {
      * @return True if emulator is detected
      */
     public boolean checkBuild() {
-        boolean ret = (checkBuildModel() | checkBuildProduct() | checkBuildHardware() | checkBuildFingerprint());
+        boolean ret = (checkBuildModel() | checkBuildProduct() | checkBuildHardware() | checkBuildFingerprint() | checkBuildHosts() | checkBuildManufacturer());
 
         if (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) {
             appendNewLine("Build brand and build device start with 'generic'");
             ret = true;
         }
-        if (Build.MANUFACTURER.contains("Genymotion")){
-            appendNewLine("Build manufacturer contains 'Genymotion'");
-            ret = true;
-        }
 
         return ret;
     }
+
+
 
     /**
      * Checks IMEI numbers and device IDs using the telephony manager
@@ -162,17 +208,27 @@ public class MainActivity extends AppCompatActivity {
      */
     public boolean checkTelephony() {
         boolean ret = false;
-        TelephonyManager tm = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        try {
-            ret = checkArray(deviceIDs, (String txt)-> tm.getDeviceId().equalsIgnoreCase(txt), "Device ID equals");
-            if(tm.getSubscriberId().equals("310260000000000")){
-                appendNewLine("Subscriber ID equals '310260000000000'");
-                ret = true;
-            }
-        }catch(Exception e){
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             appendNewLine("Permissions not granted to access telephony IDs.");
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
-                appendNewLine("SDK 29+ Cannot grant read privileged phone state permission to access non-resettable ids.");
+        }else{
+            try {
+                ret = checkArray(deviceIDs, (String txt) -> tm.getDeviceId().equalsIgnoreCase(txt), "Device ID equals") |
+                        checkArray(lineNumbers, (String txt) -> tm.getLine1Number().equals(txt), "Line1 number equals");
+                if (tm.getSubscriberId().equals("310260000000000")) {
+                    appendNewLine("Subscriber ID equals '310260000000000'");
+                    ret = true;
+                }
+                if (tm.getVoiceMailNumber().equals("15552175049")) {
+                    appendNewLine("Voicemail number equals '15552175049'");
+                    ret = true;
+                }
+            } catch (Exception e) {
+                appendNewLine("Exception caught: "+e);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    appendNewLine("SDK 29+ Cannot grant read privileged phone state permission to access non-resettable ids.");
+                }
             }
         }
 
