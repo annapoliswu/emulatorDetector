@@ -7,6 +7,9 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -16,6 +19,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.Array;
+import java.util.List;
 import java.util.function.Function;
 
 public class MainActivity extends AppCompatActivity {
@@ -93,6 +98,13 @@ public class MainActivity extends AppCompatActivity {
             "15555215578", "15555215580", "15555215582", "15555215584"
     };
 
+    private static final int[] SENSOR_TYPES = {
+            Sensor.TYPE_ACCELEROMETER,
+            Sensor.TYPE_GYROSCOPE,
+            Sensor.TYPE_LIGHT,
+            Sensor.TYPE_MAGNETIC_FIELD,
+            Sensor.TYPE_PROXIMITY
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,12 +124,12 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnMain = findViewById(R.id.button);
         btnMain.setOnClickListener(view -> {
-            appendNewLine();
-            if (checkBuild() | checkTelephony()) {
+            if (checkBuild() | checkTelephony() | checkSensor() ) {
                 appendNewLine("Emulator detected");
             } else {
                 appendNewLine("Emulator not detected");
             }
+            appendNewLine();
         });
         //output text log to file maybe
 
@@ -205,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Checks IMEI numbers and device IDs using the telephony manager
      * Tells you if permissions not granted for telephony checks
+     * @return True if emulator is detected
      */
     public boolean checkTelephony() {
         boolean ret = false;
@@ -232,6 +245,53 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        return ret;
+    }
+
+    /**
+     * Checks for 'goldfish' keyword in sensor names
+     * @return True if emulator is detected (aka virtual 'goldfish' sensor found)
+     */
+    private boolean checkGoldfishSensor(SensorManager sm){
+        List<Sensor> sensorList = sm.getSensorList(Sensor.TYPE_ALL);
+        for (Sensor sensor : sensorList) {
+            if (sensor.getName().toLowerCase().contains("goldfish")) {
+                appendNewLine("Listed sensor name contains 'goldfish'");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Goes through list of sensor types to check if sensor exists
+     * @return True if emulator is detected (aka some sensor is not found)
+     */
+    private boolean checkCommonSensors(SensorManager sm , int[] sensorTypes) {
+        boolean ret = false;
+        for(int type : sensorTypes){
+            if(sm.getDefaultSensor(type) == null){
+                appendNewLine("No sensor detected for sensor type " + type);
+                ret = true;
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Uses sensor manager to check for common emulator indicators in sensors
+     * @return True if emulator is detected
+     */
+    public boolean checkSensor(){
+        boolean ret = false;
+        SensorManager sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        try {
+            ret = checkGoldfishSensor(sm) | checkCommonSensors(sm, SENSOR_TYPES);
+        }catch(Exception e){
+            appendNewLine("Exception caught: "+e);
+            appendNewLine("Cannot access sensors");
+        }
         return ret;
     }
 
