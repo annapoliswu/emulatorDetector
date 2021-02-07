@@ -8,20 +8,21 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.lang.reflect.Array;
+import java.io.BufferedReader;
+import java.io.OutputStream;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
-import java.util.function.Function;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -124,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnMain = findViewById(R.id.button);
         btnMain.setOnClickListener(view -> {
+            checkSystemProduct();
             if (checkBuild() | checkTelephony() | checkSensor() ) {
                 appendNewLine("Emulator detected");
             } else {
@@ -188,8 +190,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkBuildManufacturer() {
-        boolean ret = checkArray(BUILD_MANUFACTURERS, Build.MANUFACTURER::contains, "Build manufacturer equals");
-        if (Build.MANUFACTURER.contains("unknown")) {
+        boolean ret = checkArray(BUILD_MANUFACTURERS, Build.MANUFACTURER::contains, "Build manufacturer contains");
+        if (Build.MANUFACTURER.equalsIgnoreCase("unknown")) {
             appendNewLine("Build manufacturer equals 'unknown'");
             ret = true;
         }
@@ -291,6 +293,38 @@ public class MainActivity extends AppCompatActivity {
         }catch(Exception e){
             appendNewLine("Exception caught: "+e);
             appendNewLine("Cannot access sensors");
+        }
+        return ret;
+    }
+
+    public boolean checkSystemProduct(){
+        String commandOutput = execCommand("getprop");
+        appendNewLine(commandOutput);
+
+        return true;
+    }
+
+    public String execCommand(String command){
+        String ret = null;
+        try{
+            Process p = Runtime.getRuntime().exec(command);
+            InputStream inputStream = p.getInputStream();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line + "\n");
+            }
+
+            p.waitFor();
+            reader.close();
+            inputStream.close();
+
+            ret = stringBuilder.toString();
+
+        }catch(Exception e){
+            appendNewLine("Can't run command: " + e);
         }
         return ret;
     }
