@@ -11,6 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.OutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
@@ -298,16 +300,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean checkSystemProduct(){
-        String commandOutput = execCommand("getprop");
+        String commandOutput = execCommand("ls", null, new File( String.valueOf(Environment.getRootDirectory())) );
+        //"ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
+        //ls -1 /dev/disk/by-id/
+        //getprop
         appendNewLine(commandOutput);
 
         return true;
     }
 
-    public String execCommand(String command){
+    public String execCommand(String command, String [] envp, File dir){
         String ret = null;
         try{
-            Process p = Runtime.getRuntime().exec(command);
+            Process p = Runtime.getRuntime().exec(command, envp, dir);
             InputStream inputStream = p.getInputStream();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -327,6 +332,10 @@ public class MainActivity extends AppCompatActivity {
             appendNewLine("Can't run command: " + e);
         }
         return ret;
+    }
+
+    public String execCommand(String command) {
+        return execCommand(command, null, null);
     }
 
 
