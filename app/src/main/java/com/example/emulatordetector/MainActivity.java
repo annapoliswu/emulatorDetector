@@ -25,6 +25,7 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.Scanner;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -127,8 +128,8 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnMain = findViewById(R.id.button);
         btnMain.setOnClickListener(view -> {
-            checkSystemProduct();
-            if (checkBuild() | checkTelephony() | checkSensor() ) {
+            test();
+            if (checkBuild() | checkTelephony() | checkSensor() | checkCpuFrequencies()) {
                 appendNewLine("Emulator detected");
             } else {
                 appendNewLine("Emulator not detected");
@@ -299,16 +300,47 @@ public class MainActivity extends AppCompatActivity {
         return ret;
     }
 
-    public boolean checkSystemProduct(){
-        String commandOutput = execCommand("ls", null, new File( String.valueOf(Environment.getRootDirectory())) );
+
+    /**
+     * Checks whether cpuinfo min and max freq files exist and if there are integer values in them
+     * @return True if emulator is detected (files not found)
+    */
+    public boolean checkCpuFrequencies(){
+        String minFreq = execCommand("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq");
+        Scanner minScanner = new Scanner(minFreq);
+        String maxFreq = execCommand("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
+        Scanner maxScanner = new Scanner(maxFreq);
+        boolean ret = false;
+
+        if(!minScanner.hasNextInt() || !maxScanner.hasNextInt()){
+            appendNewLine("CPU frequencies not found");
+            ret = true;
+        }
+        minScanner.close();
+        maxScanner.close();
+        return ret;
+    }
+
+
+    public boolean test(){
+        String str = String.valueOf(Environment.getRootDirectory());
+        String commandOutput = execCommand("getprop");
         //"ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
         //ls -1 /dev/disk/by-id/
         //getprop
+        //"cat /proc/cpuinfo"
+        //cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine(commandOutput);
 
         return true;
     }
 
+
+
+    /**
+     * Execute a linux command in specified directory
+     * @return Output of the command as a string
+    */
     public String execCommand(String command, String [] envp, File dir){
         String ret = null;
         try{
