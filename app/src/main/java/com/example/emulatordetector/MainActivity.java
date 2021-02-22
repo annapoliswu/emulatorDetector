@@ -32,8 +32,10 @@ public class MainActivity extends AppCompatActivity {
     /*--------------------------------- C CODE SETUP ---------------------------------*/
     static {
         System.loadLibrary("native-lib");
+        System.loadLibrary("unaligned-lib");
     }
     private native String getNativeString();
+    private native boolean testLib();
 
 
     /*------------------------------------------------------------------*/
@@ -125,7 +127,9 @@ public class MainActivity extends AppCompatActivity {
 
         txtMain = findViewById(R.id.txtMain);
         txtMain.setMovementMethod(new ScrollingMovementMethod());
+
         appendNewLine(getNativeString());
+        testLib();
 
         //request phone permissions if not given
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
