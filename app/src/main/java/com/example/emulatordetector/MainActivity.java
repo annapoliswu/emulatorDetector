@@ -29,6 +29,14 @@ import java.util.Scanner;
 
 public class MainActivity extends AppCompatActivity {
 
+    /*--------------------------------- C CODE SETUP ---------------------------------*/
+    static {
+        System.loadLibrary("native-lib");
+    }
+    private native String getNativeString();
+
+
+    /*------------------------------------------------------------------*/
 
     private TextView txtMain;
     private static final int REQUEST_PHONE_STATE = 1;
@@ -117,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
         txtMain = findViewById(R.id.txtMain);
         txtMain.setMovementMethod(new ScrollingMovementMethod());
+        appendNewLine(getNativeString());
 
         //request phone permissions if not given
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
@@ -330,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
         //getprop
         //"cat /proc/cpuinfo"
         //cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
-        appendNewLine(commandOutput);
+        //appendNewLine(commandOutput);
 
         return true;
     }
