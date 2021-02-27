@@ -7,12 +7,6 @@
 #include <jni.h>
 
 
-extern "C"
-JNIEXPORT jboolean JNICALL
-Java_com_example_emulatordetector_MainActivity_testLib(JNIEnv *env, jobject thiz) {;
-    return 0;
-}
-
 /*
 void AlignTrapHandler( int signum , siginfo_t *info , void * sc) {
     printf ("hardware! \ n");

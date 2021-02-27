@@ -32,10 +32,8 @@ public class MainActivity extends AppCompatActivity {
     /*--------------------------------- C CODE SETUP ---------------------------------*/
     static {
         System.loadLibrary("native-lib");
-        System.loadLibrary("unaligned-lib");
     }
     private native String getNativeString();
-    private native boolean testLib();
 
 
     /*------------------------------------------------------------------*/
@@ -128,9 +126,6 @@ public class MainActivity extends AppCompatActivity {
         txtMain = findViewById(R.id.txtMain);
         txtMain.setMovementMethod(new ScrollingMovementMethod());
 
-        appendNewLine(getNativeString());
-        testLib();
-
         //request phone permissions if not given
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             appendNewLine("Please grant phone permissions to enable full checks.");
@@ -142,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnMain = findViewById(R.id.button);
         btnMain.setOnClickListener(view -> {
             test();
-            if (checkBuild() | checkTelephony() | checkSensor() | checkCpuFrequencies()) {
+            if (checkBuild() | checkTelephony() | checkSensors() | checkCpu() ) {
                 appendNewLine("Emulator detected");
             } else {
                 appendNewLine("Emulator not detected");
@@ -274,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
         List<Sensor> sensorList = sm.getSensorList(Sensor.TYPE_ALL);
         for (Sensor sensor : sensorList) {
             if (sensor.getName().toLowerCase().contains("goldfish")) {
-                appendNewLine("Listed sensor name contains 'goldfish'");
+                appendNewLine("Listed sensor names contain 'goldfish'");
                 return true;
             }
         }
@@ -300,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
      * Uses sensor manager to check for common emulator indicators in sensors
      * @return True if emulator is detected
      */
-    public boolean checkSensor(){
+    public boolean checkSensors(){
         boolean ret = false;
         SensorManager sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
@@ -318,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
      * Checks whether cpuinfo min and max freq files exist and if there are integer values in them
      * @return True if emulator is detected (files not found)
     */
-    public boolean checkCpuFrequencies(){
+    private boolean checkCpuFrequencies(){
         String minFreq = execCommand("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq");
         Scanner minScanner = new Scanner(minFreq);
         String maxFreq = execCommand("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
@@ -334,16 +329,48 @@ public class MainActivity extends AppCompatActivity {
         return ret;
     }
 
+    private boolean checkCpuInfo(){
+        String cpuinfoOutput = execCommand("cat /proc/cpuinfo").toLowerCase();
+        if(cpuinfoOutput.contains("goldfish")){
+            appendNewLine("cpuinfo contains 'goldfish'");
+            return true;
+        }else if(cpuinfoOutput.contains("virtual cpu")){
+            appendNewLine("cpuinfo contains 'virtual cpu'");
+            return true;
+        }
+        return false;
+    }
+
+    public boolean checkCpu(){
+        return checkCpuFrequencies() | checkCpuInfo();
+    }
+
+    //this needs permissions actually
+    public boolean checkDrivers(){
+        String driversOutput = execCommand("cat /proc/tty/drivers").toLowerCase();
+        appendNewLine(driversOutput);
+
+        if(driversOutput.contains("goldfish")){
+            appendNewLine("/proc/tty/drivers contains 'goldfish'");
+            return true;
+        }
+        return false;
+    }
+
+
 
     public boolean test(){
         String str = String.valueOf(Environment.getRootDirectory());
-        String commandOutput = execCommand("getprop");
-        //"ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
-        //ls -1 /dev/disk/by-id/
-        //getprop
-        //"cat /proc/cpuinfo"
-        //cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
-        //appendNewLine(commandOutput);
+        String commandOutput = execCommand("cat /proc/cpuinfo");
+        /*
+        "ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
+        ls -1 /dev/disk/by-id/
+        getprop
+        "cat /proc/cpuinfo"
+        cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
+        appendNewLine("command output: " + commandOutput);
+        */
+        checkDrivers();
 
         return true;
     }
