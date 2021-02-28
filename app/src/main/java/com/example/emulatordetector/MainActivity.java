@@ -1,5 +1,6 @@
 package com.example.emulatordetector;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -39,7 +40,16 @@ public class MainActivity extends AppCompatActivity {
     /*------------------------------------------------------------------*/
 
     private TextView txtMain;
-    private static final int REQUEST_PHONE_STATE = 1;
+    private static final int ALL_PERMISSIONS = 1;
+    private boolean permissionsAllowed = false;
+
+    private static final String[] PERMISSIONS = {
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+    };
 
     private static final String[] BUILD_MODELS = {
             "android sdk built for x86",
@@ -118,35 +128,6 @@ public class MainActivity extends AppCompatActivity {
             Sensor.TYPE_PROXIMITY
     };
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        txtMain = findViewById(R.id.txtMain);
-        txtMain.setMovementMethod(new ScrollingMovementMethod());
-
-        //request phone permissions if not given
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            appendNewLine("Please grant phone permissions to enable full checks.");
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_PHONE_STATE},
-                    REQUEST_PHONE_STATE);
-        }
-
-        Button btnMain = findViewById(R.id.button);
-        btnMain.setOnClickListener(view -> {
-            test();
-            if (checkBuild() | checkTelephony() | checkSensors() | checkCpu() ) {
-                appendNewLine("Emulator detected");
-            } else {
-                appendNewLine("Emulator not detected");
-            }
-            appendNewLine();
-        });
-        //output text log to file maybe
-
-    }
 
     public void appendNewLine(String txt) {
         txtMain.append("\n" + txt);
@@ -159,6 +140,74 @@ public class MainActivity extends AppCompatActivity {
     public void clearText() {
         txtMain.setText("");
     }
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        txtMain = findViewById(R.id.txtMain);
+        txtMain.setMovementMethod(new ScrollingMovementMethod());
+
+        Button btnMain = findViewById(R.id.button);
+
+        btnMain.setOnClickListener(view -> {
+
+            requestPermissions();
+            if(permissionsAllowed){
+                executeChecks();
+            }
+
+        });
+        //output text log to file maybe
+
+    }
+
+
+    /**
+     * Executes all the main detection checks, called once permissions are determined
+     */
+    public void executeChecks(){
+        test();
+
+        if (checkBuild() | checkTelephony() | checkSensors() | checkCpu() ) {
+            appendNewLine("Emulator detected");
+        } else {
+            appendNewLine("Emulator not detected");
+        }
+        appendNewLine();
+    }
+
+
+    //request phone permissions if not given
+    public void requestPermissions(){
+        for(String permission : PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        PERMISSIONS,
+                        ALL_PERMISSIONS);
+                break;
+            }
+        } permissionsAllowed = true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case ALL_PERMISSIONS: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //permissions granted,proceed with program
+                    permissionsAllowed = true;
+                } else {
+                    //permissions denied
+                    appendNewLine("Please enable all permissions to access full checks.");
+                }
+            }
+        }
+    }
+
+
 
     interface Predicate {
         boolean call(String param);
