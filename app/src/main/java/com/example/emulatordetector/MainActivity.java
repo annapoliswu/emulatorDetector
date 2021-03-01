@@ -6,6 +6,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -25,8 +27,11 @@ import java.io.OutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Function;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -141,6 +146,13 @@ public class MainActivity extends AppCompatActivity {
         txtMain.setText("");
     }
 
+    public static boolean telephony;
+    public static boolean sensors;
+    public static boolean cpu;
+    public static boolean bluetooth;
+    public static boolean build;
+
+    public final int DETECTION_THRESHOLD = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -171,12 +183,31 @@ public class MainActivity extends AppCompatActivity {
     public void executeChecks(){
         test();
 
-        if (checkBuild() | checkTelephony() | checkSensors() | checkCpu() ) {
-            appendNewLine("Emulator detected");
-        } else {
-            appendNewLine("Emulator not detected");
+        build = checkBuild();
+        telephony = checkTelephony();
+        sensors = checkSensors();
+        cpu = checkCpu();
+        bluetooth = checkBluetooth();
+
+        boolean[] flags = {
+                build,
+                telephony,
+                sensors,
+                cpu,
+                bluetooth
+        };
+
+        int count = 0;
+        for( boolean b : flags){
+            count++;
         }
-        appendNewLine();
+
+        if (count >= DETECTION_THRESHOLD){
+            appendNewLine("Emulator detected: " + count);
+        }else{
+            appendNewLine("Emulator not detected: " + count);
+        }
+
     }
 
 
@@ -206,7 +237,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
 
 
     interface Predicate {
@@ -275,7 +305,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     /**
      * Checks IMEI numbers and device IDs using the telephony manager
      * Tells you if permissions not granted for telephony checks
@@ -302,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 appendNewLine("Exception caught: "+e);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    appendNewLine("SDK 29+ Cannot grant read privileged phone state permission to access non-resettable ids.");
+                    appendNewLine("\nSDK 29+ Cannot grant read privileged phone permission to access non-resettable ids.");
                 }
             }
         }
@@ -352,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
             ret = checkGoldfishSensor(sm) | checkCommonSensors(sm, SENSOR_TYPES);
         }catch(Exception e){
             appendNewLine("Exception caught: "+e);
-            appendNewLine("Cannot access sensors");
+            appendNewLine("\nCannot access sensors");
         }
         return ret;
     }
@@ -406,7 +435,19 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-
+    /**
+     * Checks if there is bluetooth capabilities
+     * @return true if no adapter found / likely an emulator
+     */
+    public boolean checkBluetooth(){
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(bluetoothAdapter == null){
+            appendNewLine("No bluetooth adapter found");
+            return true;
+        }else{
+            return false;
+        }
+    }
 
     public boolean test(){
         String str = String.valueOf(Environment.getRootDirectory());
@@ -419,9 +460,7 @@ public class MainActivity extends AppCompatActivity {
         cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine("command output: " + commandOutput);
         */
-        checkDrivers();
-
-        return true;
+        return false;
     }
 
 
@@ -450,7 +489,8 @@ public class MainActivity extends AppCompatActivity {
             ret = stringBuilder.toString();
 
         }catch(Exception e){
-            appendNewLine("Can't run command: " + e);
+            appendNewLine("Exception caught: "+e);
+            appendNewLine("\nCannot run command");
         }
         return ret;
     }
