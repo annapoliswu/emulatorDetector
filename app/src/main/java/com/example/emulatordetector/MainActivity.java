@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -47,17 +48,18 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView txtMain;
     private static final int ALL_PERMISSIONS = 1;
-    private boolean permissionsAllowed = false;
 
-    public static Map<String,Boolean> flags;
+    public static Map<String,Boolean> flags = new HashMap<>();
     public final int DETECTION_THRESHOLD = 3;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
-            Manifest.permission.READ_EXTERNAL_STORAGE
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.READ_CONTACTS
     };
 
     private static final String[] BUILD_MODELS = {
@@ -163,14 +165,33 @@ public class MainActivity extends AppCompatActivity {
 
         btnMain.setOnClickListener(view -> {
 
-            requestPermissions();
-            if(permissionsAllowed){
-                executeChecks();
-            }
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, ALL_PERMISSIONS);
 
         });
         //output text log to file maybe
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case ALL_PERMISSIONS: {
+                boolean allGranted = true;
+                for( int res : grantResults){
+                    if(res == PackageManager.PERMISSION_DENIED ) {
+                        allGranted = false;
+                        break;
+                    }
+                }
+                if (allGranted) {
+                    //all permissions granted,proceed with program
+                    executeChecks();
+                } else {
+                    //some permission denied
+                    appendNewLine("\nPlease enable all permissions to access full checks.\n");
+                }
+            }
+        }
     }
 
 
@@ -203,39 +224,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (count >= DETECTION_THRESHOLD){
-            appendNewLine("Emulator detected: " + count);
+            appendNewLine("Emulator detected: " + count + "\n");
         }else{
-            appendNewLine("Emulator not detected: " + count);
+            appendNewLine("Emulator not detected: " + count + "\n");
         }
 
-    }
-
-
-    //request phone permissions if not given
-    public void requestPermissions(){
-        for(String permission : PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this,
-                        PERMISSIONS,
-                        ALL_PERMISSIONS);
-                break;
-            }
-        } permissionsAllowed = true;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case ALL_PERMISSIONS: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    //permissions granted,proceed with program
-                    permissionsAllowed = true;
-                } else {
-                    //permissions denied
-                    appendNewLine("Please enable all permissions to access full checks.");
-                }
-            }
-        }
     }
 
 
@@ -460,6 +453,7 @@ public class MainActivity extends AppCompatActivity {
         cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine("command output: " + commandOutput);
         */
+
         return false;
     }
 
