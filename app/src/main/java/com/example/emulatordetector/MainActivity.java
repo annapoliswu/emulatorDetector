@@ -30,6 +30,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.function.Function;
 
@@ -47,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtMain;
     private static final int ALL_PERMISSIONS = 1;
     private boolean permissionsAllowed = false;
+
+    public static Map<String,Boolean> flags;
+    public final int DETECTION_THRESHOLD = 3;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_PHONE_STATE,
@@ -146,13 +150,6 @@ public class MainActivity extends AppCompatActivity {
         txtMain.setText("");
     }
 
-    public static boolean telephony;
-    public static boolean sensors;
-    public static boolean cpu;
-    public static boolean bluetooth;
-    public static boolean build;
-
-    public final int DETECTION_THRESHOLD = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,23 +180,26 @@ public class MainActivity extends AppCompatActivity {
     public void executeChecks(){
         test();
 
-        build = checkBuild();
-        telephony = checkTelephony();
-        sensors = checkSensors();
-        cpu = checkCpu();
-        bluetooth = checkBluetooth();
+        boolean build = checkBuild();
+        boolean telephony = checkTelephony();
+        boolean sensors = checkSensors();
+        boolean cpu = checkCpu();
+        boolean bluetooth = checkBluetooth();
 
-        boolean[] flags = {
-                build,
-                telephony,
-                sensors,
-                cpu,
-                bluetooth
-        };
+        flags.put("build", build);
+        flags.put("telephony", telephony);
+        flags.put("sensors", sensors);
+        flags.put("cpu", cpu);
+        flags.put("bluetooth", bluetooth);
 
         int count = 0;
-        for( boolean b : flags){
-            count++;
+        for (Map.Entry<String, Boolean> entry : flags.entrySet()){
+            String key = entry.getKey();
+            Boolean value = entry.getValue();
+
+            if(value){
+                count++;
+            }
         }
 
         if (count >= DETECTION_THRESHOLD){
