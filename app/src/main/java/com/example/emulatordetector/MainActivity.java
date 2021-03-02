@@ -8,13 +8,16 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
@@ -50,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int ALL_PERMISSIONS = 1;
 
     public static Map<String,Boolean> flags = new HashMap<>();
-    public final int DETECTION_THRESHOLD = 3;
+    public static final int DETECTION_THRESHOLD = 3;
+    public static final int NUM_CONTACTS_THRESHOLD = 1;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_PHONE_STATE,
@@ -206,12 +210,14 @@ public class MainActivity extends AppCompatActivity {
         boolean sensors = checkSensors();
         boolean cpu = checkCpu();
         boolean bluetooth = checkBluetooth();
+        boolean contacts = checkContacts();
 
         flags.put("build", build);
         flags.put("telephony", telephony);
         flags.put("sensors", sensors);
         flags.put("cpu", cpu);
         flags.put("bluetooth", bluetooth);
+        flags.put("contacts", contacts);
 
         int count = 0;
         for (Map.Entry<String, Boolean> entry : flags.entrySet()){
@@ -442,9 +448,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Checks if the number of contacts is below a threshold
+     * @return true if emulator detected
+     */
+    public boolean checkContacts(){
+        ContentResolver cr = getContentResolver();
+        Cursor cursor = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+
+        if(cursor == null){
+            appendNewLine("Cursor for contacts check is null");
+            return true;
+        }else{
+            int numContacts = cursor.getCount();
+            if(numContacts < NUM_CONTACTS_THRESHOLD){
+                appendNewLine("Low number of contacts: "+ numContacts + " contacts");
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+    }
+
     public boolean test(){
         String str = String.valueOf(Environment.getRootDirectory());
         String commandOutput = execCommand("cat /proc/cpuinfo");
+
         /*
         "ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
         ls -1 /dev/disk/by-id/
@@ -453,7 +483,6 @@ public class MainActivity extends AppCompatActivity {
         cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine("command output: " + commandOutput);
         */
-
         return false;
     }
 
