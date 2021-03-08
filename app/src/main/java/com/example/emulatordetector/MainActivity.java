@@ -14,6 +14,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -63,7 +64,9 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.READ_CONTACTS
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.CHANGE_WIFI_STATE,
+            Manifest.permission.ACCESS_WIFI_STATE
     };
 
     private static final String[] BUILD_MODELS = {
@@ -144,6 +147,10 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
+    private static final String[] NETWORK_NAMES = {
+            "AndroidWifi"
+    };
+
     public void appendNewLine(String txt) {
         txtMain.append("\n" + txt);
     }
@@ -211,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
         boolean cpu = checkCpu();
         boolean bluetooth = checkBluetooth();
         boolean contacts = checkContacts();
+        boolean wifi = checkWifi();
 
         flags.put("build", build);
         flags.put("telephony", telephony);
@@ -218,21 +226,27 @@ public class MainActivity extends AppCompatActivity {
         flags.put("cpu", cpu);
         flags.put("bluetooth", bluetooth);
         flags.put("contacts", contacts);
+        flags.put("wifi", wifi);
 
+        appendNewLine("\n-----Test Results-----");
         int count = 0;
+        int total = 0;
         for (Map.Entry<String, Boolean> entry : flags.entrySet()){
             String key = entry.getKey();
             Boolean value = entry.getValue();
 
             if(value){
                 count++;
-            }
+            }total++;
+
+            String line = value ? key.toUpperCase() + ": found" : key.toUpperCase() + ": not found";
+            appendNewLine(line);
         }
 
         if (count >= DETECTION_THRESHOLD){
-            appendNewLine("Emulator detected: " + count + "\n");
+            appendNewLine("Emulator detected: " + count + "/" + total + "\n");
         }else{
-            appendNewLine("Emulator not detected: " + count + "\n");
+            appendNewLine("Emulator not detected: " + count + "/" + total + "\n");
         }
 
     }
@@ -461,6 +475,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }else{
             int numContacts = cursor.getCount();
+            cursor.close();
             if(numContacts < NUM_CONTACTS_THRESHOLD){
                 appendNewLine("Low number of contacts: "+ numContacts + " contacts");
                 return true;
@@ -469,21 +484,27 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+
     }
 
-    public boolean test(){
-        String str = String.valueOf(Environment.getRootDirectory());
-        String commandOutput = execCommand("cat /proc/cpuinfo");
-
-        /*
-        "ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
-        ls -1 /dev/disk/by-id/
-        getprop
-        "cat /proc/cpuinfo"
-        cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
-        appendNewLine("command output: " + commandOutput);
-        */
-        return false;
+    /**
+     * Checks if wifi is supported and wifi network name
+     */
+    public boolean checkWifi(){
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if(wifiManager == null){
+            appendNewLine("Device does not support wifi");
+            return true;
+        }else{
+            if(wifiManager.isWifiEnabled()){
+                String ssid = wifiManager.getConnectionInfo().getSSID();
+                return checkArray(NETWORK_NAMES, txt -> ssid.contains(txt), "Wifi network name contains");
+            }else{
+                appendNewLine("Enabling wifi, please test again to get wifi results");
+                wifiManager.setWifiEnabled(true); //enables wifi
+                return false;
+            }
+        }
     }
 
 
@@ -520,6 +541,21 @@ public class MainActivity extends AppCompatActivity {
 
     public String execCommand(String command) {
         return execCommand(command, null, null);
+    }
+
+
+    public boolean test(){
+        /*
+        String str = String.valueOf(Environment.getRootDirectory());
+        String commandOutput = execCommand("cat /proc/cpuinfo");
+        "ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
+        ls -1 /dev/disk/by-id/
+        getprop
+        "cat /proc/cpuinfo"
+        cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
+        appendNewLine("command output: " + commandOutput);
+        */
+        return false;
     }
 
 
