@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     public static Map<String,Boolean> flags = new HashMap<>();
     public static final int DETECTION_THRESHOLD = 3;
     public static final int NUM_CONTACTS_THRESHOLD = 1;
+    public static final int NUM_CALLS_THRESHOLD = 3;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_PHONE_STATE,
@@ -66,7 +67,8 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.ACCESS_WIFI_STATE
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.READ_CALL_LOG
     };
 
     private static final String[] BUILD_MODELS = {
@@ -219,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
         boolean bluetooth = checkBluetooth();
         boolean contacts = checkContacts();
         boolean wifi = checkWifi();
+        boolean calls = checkCalls();
 
         flags.put("build", build);
         flags.put("telephony", telephony);
@@ -227,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
         flags.put("bluetooth", bluetooth);
         flags.put("contacts", contacts);
         flags.put("wifi", wifi);
+        flags.put("calls", calls);
 
         appendNewLine("\n-----Test Results-----");
         int count = 0;
@@ -477,7 +481,7 @@ public class MainActivity extends AppCompatActivity {
             int numContacts = cursor.getCount();
             cursor.close();
             if(numContacts < NUM_CONTACTS_THRESHOLD){
-                appendNewLine("Low number of contacts: "+ numContacts + " contacts");
+                appendNewLine("Low number of contacts: "+ numContacts);
                 return true;
             }else{
                 return false;
@@ -486,6 +490,25 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+    public boolean checkCalls(){
+        try {
+            ContentResolver cr = getContentResolver();
+            Cursor cursor = cr.query(android.provider.CallLog.Calls.CONTENT_URI, null, null, null, null);
+            int numCalls = cursor.getCount();
+            if(numCalls <= NUM_CALLS_THRESHOLD){
+                appendNewLine("Low number of calls in call log: " + numCalls);
+                return true;
+            }else{
+                return false;
+            }
+        }catch(Exception e){
+            appendNewLine("Exception: " + e);
+            return false;
+        }
+
+    }
+
 
     /**
      * Checks if wifi is supported and wifi network name
@@ -555,6 +578,7 @@ public class MainActivity extends AppCompatActivity {
         cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine("command output: " + commandOutput);
         */
+
         return false;
     }
 
