@@ -6,14 +6,18 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -68,7 +72,8 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.CHANGE_WIFI_STATE,
             Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.READ_CALL_LOG
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.CAMERA
     };
 
     private static final String[] BUILD_MODELS = {
@@ -222,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
         boolean contacts = checkContacts();
         boolean wifi = checkWifi();
         boolean calls = checkCalls();
+        boolean camera = checkCamera();
 
         flags.put("build", build);
         flags.put("telephony", telephony);
@@ -231,6 +237,8 @@ public class MainActivity extends AppCompatActivity {
         flags.put("contacts", contacts);
         flags.put("wifi", wifi);
         flags.put("calls", calls);
+        flags.put("camera", camera);
+
 
         appendNewLine("\n-----Test Results-----");
         int count = 0;
@@ -243,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
                 count++;
             }total++;
 
-            String line = value ? key.toUpperCase() + ": found" : key.toUpperCase() + ": not found";
+            String line = value ? key.toUpperCase() + ":  detected" : key.toUpperCase() + ": ---";
             appendNewLine(line);
         }
 
@@ -531,6 +539,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    public boolean checkCamera(){
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
+            try {
+                CameraManager cManager = (CameraManager) getApplicationContext().getSystemService(Context.CAMERA_SERVICE);
+                return false;
+            }
+            catch (Exception e){
+                // Camera is not available (in use or does not exist)
+                appendNewLine("No camera available: "+ e);
+                return true;
+            }
+        } else {
+            appendNewLine("No camera in system features");
+            return true;
+        }
+    }
+
 
     /**
      * Execute a linux command in specified directory
@@ -567,6 +592,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
     public boolean test(){
         /*
         String str = String.valueOf(Environment.getRootDirectory());
@@ -578,9 +604,7 @@ public class MainActivity extends AppCompatActivity {
         cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
         appendNewLine("command output: " + commandOutput);
         */
-
         return false;
     }
-
 
 }
