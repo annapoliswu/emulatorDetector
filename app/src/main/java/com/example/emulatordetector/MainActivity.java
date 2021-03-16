@@ -18,11 +18,13 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
@@ -59,8 +61,10 @@ public class MainActivity extends AppCompatActivity {
 
     public static Map<String,Boolean> flags = new HashMap<>();
     public static final int DETECTION_THRESHOLD = 3;
+
     public static final int NUM_CONTACTS_THRESHOLD = 1;
     public static final int NUM_CALLS_THRESHOLD = 3;
+    public static final int NUM_PHOTOS_THRESHOLD = 3;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_PHONE_STATE,
@@ -224,20 +228,24 @@ public class MainActivity extends AppCompatActivity {
         boolean sensors = checkSensors();
         boolean cpu = checkCpu();
         boolean bluetooth = checkBluetooth();
-        boolean contacts = checkContacts();
         boolean wifi = checkWifi();
-        boolean calls = checkCalls();
         boolean camera = checkCamera();
+        boolean calls = checkCalls();
+        boolean contacts = checkContacts();
+        boolean photos = checkPhotos();
 
         flags.put("build", build);
         flags.put("telephony", telephony);
         flags.put("sensors", sensors);
         flags.put("cpu", cpu);
         flags.put("bluetooth", bluetooth);
-        flags.put("contacts", contacts);
         flags.put("wifi", wifi);
-        flags.put("calls", calls);
         flags.put("camera", camera);
+
+        //flags involving thresholds
+        flags.put("calls", calls);
+        flags.put("contacts", contacts);
+        flags.put("photos", photos);
 
 
         appendNewLine("\n-----Test Results-----");
@@ -504,6 +512,8 @@ public class MainActivity extends AppCompatActivity {
             ContentResolver cr = getContentResolver();
             Cursor cursor = cr.query(android.provider.CallLog.Calls.CONTENT_URI, null, null, null, null);
             int numCalls = cursor.getCount();
+            cursor.close();
+
             if(numCalls <= NUM_CALLS_THRESHOLD){
                 appendNewLine("Low number of calls in call log: " + numCalls);
                 return true;
@@ -511,7 +521,7 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }catch(Exception e){
-            appendNewLine("Exception: " + e);
+            appendNewLine("Exception caught: " + e);
             return false;
         }
 
@@ -556,6 +566,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public boolean checkPhotos(){
+        try {
+            ContentResolver cr = getContentResolver();
+            Cursor imageCursor = cr.query(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null);
+            int numPhotos = imageCursor.getCount();
+            imageCursor.close();
+
+            if(numPhotos <= NUM_PHOTOS_THRESHOLD){
+                appendNewLine("Low number of photos found: " + numPhotos);
+                return true;
+            }else{
+                return false;
+            }
+        }catch(Exception e){
+            appendNewLine("Exception caught: "+e);
+            return false;
+        }
+    }
+
 
     /**
      * Execute a linux command in specified directory
@@ -594,16 +623,8 @@ public class MainActivity extends AppCompatActivity {
 
 
     public boolean test(){
-        /*
-        String str = String.valueOf(Environment.getRootDirectory());
-        String commandOutput = execCommand("cat /proc/cpuinfo");
-        "ls", null, new File(String.valueOf(Environment.getExternalStorageDirectory())) to go to a directory to do things
-        ls -1 /dev/disk/by-id/
-        getprop
-        "cat /proc/cpuinfo"
-        cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq  returns a number for real device
-        appendNewLine("command output: " + commandOutput);
-        */
+
+
         return false;
     }
 
